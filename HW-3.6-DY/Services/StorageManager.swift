@@ -5,38 +5,51 @@
 //  Created by Denis Yarets on 25/11/2023.
 //
 
-import UIKit
+import Foundation
+import CoreData
 
 final class StorageManager {
     
     static let shared = StorageManager()
     
-    private let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    private var persistentContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "HW_3_6_DY")
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        })
+        return container
+    }()
     
-    private init() {}
+    private let context: NSManagedObjectContext
+    
+    private init() {
+        context = persistentContainer.viewContext
+    }
     
 }
 
 extension StorageManager {
     
-    func fetchData() {
-        // MARK: Объясни в чем разница этих 2х подходов, пожалуйста
-        /*
+    func saveContext () {
+        let context = persistentContainer.viewContext
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                let nserror = error as NSError
+                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+            }
+        }
+    }
+    
+    func fetchData(completion: ([Task]) -> Void) {
         let fetchRequest = Task.fetchRequest()
-        
         do {
-            tasks = try viewContext.fetch(fetchRequest)
+            try completion(context.fetch(fetchRequest))
         } catch {
             print(error.localizedDescription)
-        }
-         */
-        
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-            } catch {
-                print(error.localizedDescription)
-            }
         }
     }
     
@@ -46,22 +59,26 @@ extension StorageManager {
             return
         }
         
-        let task = Task(context: viewContext)
+        let task = Task(context: context)
         task.title = title
         
-        fetchData()
-        
+        saveContext()
         completionHandler(task)
     }
     
-    func editTask() {
+    func edit(task: Task, with title: String?, completionHandler: (Task) -> Void) {
+        guard let title, !title.isEmpty else {
+            print("Title can't be empty or missing")
+            return
+        }
+        task.title = title
+        saveContext()
+        completionHandler(task)
     }
     
     func deleteTask(_ task: Task, completionHandler: () -> Void ) {
-        viewContext.delete(task)
-        
-        fetchData()
-        
+        context.delete(task)
+        saveContext()
         completionHandler()
     }
     

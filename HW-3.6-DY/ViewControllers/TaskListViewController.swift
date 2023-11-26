@@ -20,22 +20,25 @@ final class TaskListViewController: UITableViewController {
         view.backgroundColor = .white
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
+        storageManager.fetchData {
+            tasks = $0
+            tableView.reloadData()
+        }
     }
-    
 }
 
 // MARK: - Editing Table Content Methods
 private extension TaskListViewController {
+    
     func save(_ text: String?) {
-        storageManager.saveTask(with: text) { task in
-            tasks.append(task)
+        storageManager.saveTask(with: text) {
+            tasks.append($0)
             
             let indexPath = IndexPath(row: tasks.count - 1, section: 0)
             tableView.insertRows(at: [indexPath], with: .automatic)
         }
     }
     
-    // MARK: Delete methos
     func delete(at index: Int) {
         let task = tasks[index]
         
@@ -45,7 +48,14 @@ private extension TaskListViewController {
         }
     }
     
-    func edit(_ task: Task) {
+    func editTitle(for task: Task, with title: String?) {
+        storageManager.edit(task: task, with: title) { task in
+            let index = tasks.firstIndex(where: { $0 === task })
+            if let index {
+                tasks[index] = task
+                tableView.reloadData()
+            }
+        }
     }
 }
 
@@ -86,7 +96,7 @@ private extension TaskListViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let actionCancel = UIAlertAction(title: "Cancel", style: .destructive)
         let actionSave = UIAlertAction(title: "Save", style: .default) { [unowned self] _ in
-            task == nil ? save(alert.textFields?.first?.text) : edit(task!)
+            task == nil ? save(alert.textFields?.first?.text) : editTitle(for: task!, with: alert.textFields?.first?.text)
         }
         alert.addAction(actionCancel)
         alert.addAction(actionSave)

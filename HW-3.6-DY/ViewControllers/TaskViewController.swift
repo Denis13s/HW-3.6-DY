@@ -15,8 +15,6 @@ final class TaskViewController: UIViewController {
     
     weak var delegate: TaskViewControllerDelegate?
     
-    private let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
     private lazy var textField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "Task"
