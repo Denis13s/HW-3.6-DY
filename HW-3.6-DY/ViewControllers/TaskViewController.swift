@@ -18,10 +18,7 @@ final class TaskViewController: UIViewController {
     private lazy var textField: UITextField = {
         let textField = UITextField()
         textField.placeholder = "Task"
-//        textField.backgroundColor = UIColor.white
         textField.borderStyle = .roundedRect
-//        textField.layer.borderColor = UIColor.gray.cgColor
-//        textField.textColor = UIColor.black
         textField.translatesAutoresizingMaskIntoConstraints = false
         return textField
     }()
