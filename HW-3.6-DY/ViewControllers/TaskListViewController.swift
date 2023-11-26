@@ -6,14 +6,11 @@
 //
 
 import UIKit
-// Delete via editing style,
 
+// MARK: - TaskListViewController
 final class TaskListViewController: UITableViewController {
     
     private let storageManager = StorageManager.shared
-    
-    // Should be removed
-    private let viewContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     private let cellID = "cellTask"
     private var tasks: [Task] = []
@@ -27,7 +24,32 @@ final class TaskListViewController: UITableViewController {
     
 }
 
-// MARK: Private methods
+// MARK: - Editing Table Content Methods
+private extension TaskListViewController {
+    func save(_ text: String?) {
+        storageManager.saveTask(with: text) { task in
+            tasks.append(task)
+            
+            let indexPath = IndexPath(row: tasks.count - 1, section: 0)
+            tableView.insertRows(at: [indexPath], with: .automatic)
+        }
+    }
+    
+    // MARK: Delete methos
+    func delete(at index: Int) {
+        let task = tasks[index]
+        
+        storageManager.deleteTask(task) {
+            tasks.remove(at: index)
+            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+        }
+    }
+    
+    func edit(_ task: Task) {
+    }
+}
+
+// MARK: - NavigationController Methods
 private extension TaskListViewController {
     
     @objc func addNewTaskAlert() {
@@ -38,52 +60,6 @@ private extension TaskListViewController {
         let taskVC = TaskViewController()
         taskVC.delegate = self
         navigationController?.pushViewController(taskVC, animated: true)
-    }
-    
-    func showAlert(with title: String, and message: String, task: Task? = nil) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let actionCancel = UIAlertAction(title: "Cancel", style: .destructive)
-        let actionSave = UIAlertAction(title: "Save", style: .default) { [unowned self] _ in
-            task == nil ? save(alert.textFields?.first?.text) : edit(task!)
-        }
-        alert.addAction(actionCancel)
-        alert.addAction(actionSave)
-        alert.addTextField {
-            $0.placeholder = (task == nil) ? "Add Task" : ""
-            $0.text = (task == nil) ? nil : task?.title
-            
-        }
-        
-        present(alert, animated: true)
-    }
-    
-    func save(_ text: String?) {
-        guard let text, !text.isEmpty else { return }
-        
-        let task = Task(context: viewContext)
-        task.title = text
-        tasks.append(task)
-        
-        let indexPath = IndexPath(row: tasks.count - 1, section: 0)
-        tableView.insertRows(at: [indexPath], with: .automatic)
-        
-        fetchData()
-    }
-    
-    // MARK: Delete methos
-    func delete(at index: Int) {
-        let task = tasks[index]
-        
-        tasks.remove(at: index)
-        // remove for tableView
-        // romove from the dataCore
-        tableView.reloadData()
-        viewContext.delete(task)
-        fetchData()
-    }
-    
-    func edit(_ task: Task) {
-        showAlert(with: "Change the Title", and: "", task: task)
     }
     
     func setupNavigationBar() {
@@ -105,25 +81,22 @@ private extension TaskListViewController {
         navigationController?.navigationBar.tintColor = .black
     }
     
-    func fetchData() {
-        // MARK: Объясни в чем разница этих 2х подходов, пожалуйста
-        /*
-        let fetchRequest = Task.fetchRequest()
-        
-        do {
-            tasks = try viewContext.fetch(fetchRequest)
-        } catch {
-            print(error.localizedDescription)
+    
+    func showAlert(with title: String, and message: String, task: Task? = nil) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        let actionCancel = UIAlertAction(title: "Cancel", style: .destructive)
+        let actionSave = UIAlertAction(title: "Save", style: .default) { [unowned self] _ in
+            task == nil ? save(alert.textFields?.first?.text) : edit(task!)
         }
-         */
-        
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-            } catch {
-                print(error.localizedDescription)
-            }
+        alert.addAction(actionCancel)
+        alert.addAction(actionSave)
+        alert.addTextField {
+            $0.placeholder = (task == nil) ? "Add Task" : nil
+            $0.text = (task == nil) ? nil : task?.title
+            
         }
+        
+        present(alert, animated: true)
     }
     
 }
@@ -150,6 +123,14 @@ extension TaskListViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        edit(tasks[indexPath.row])
+        showAlert(with: "Change the Title", and: "", task: tasks[indexPath.row])
     }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            delete(at: indexPath.row)
+        }
+    }
+    
 }
+
